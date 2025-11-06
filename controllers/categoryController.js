@@ -1,58 +1,61 @@
+const path = require('path');
 const { Category, Product, Blog } = require('../models/index');
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
 
 // CREATE CATEGORY (Enhanced with proper error handling)
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description, image, isActive } = req.body;
+    const { name, description, isActive } = req.body;
 
-    // Validate required fields
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: 'Category name is required' });
     }
 
-    // Check if category with same name already exists
     const existingCategory = await Category.findOne({
-      where: { name: name.trim() }
+      where: { name: name.trim() },
     });
 
     if (existingCategory) {
       return res.status(400).json({ error: 'Category name already exists' });
     }
 
+    // Handle uploaded image
+    const image = req.file
+      ? path.join('uploads', 'categories', req.file.filename)
+      : null;
+
     const category = await Category.create({
       name: name.trim(),
       description: description ? description.trim() : null,
-      image: image || null,
-      isActive: isActive !== undefined ? isActive : true
+      image,
+      isActive: isActive !== undefined ? isActive : true,
     });
 
     res.status(201).json({
       message: 'Category created successfully',
-      category
+      category,
     });
   } catch (error) {
     console.error('Create category error:', error);
-    
-    // Handle specific Sequelize errors
+
     if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(400).json({ error: 'Category name already exists' });
     }
-    
+
     if (error.name === 'SequelizeValidationError') {
       const validationErrors = error.errors.map(err => ({
         field: err.path,
-        message: err.message
+        message: err.message,
       }));
       return res.status(400).json({ 
         error: 'Validation failed', 
-        details: validationErrors 
+        details: validationErrors,
       });
     }
 
     res.status(500).json({ 
       error: 'Internal server error',
-      message: error.message 
+      message: error.message,
     });
   }
 };
