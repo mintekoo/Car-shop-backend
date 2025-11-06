@@ -1,6 +1,6 @@
 const { User, Role, Product, Booking, Blog, Testimonial } = require('../models/index');
 const bcrypt = require('bcrypt');
-
+const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
 // CREATE USER
 exports.createUser = async (req, res) => {
   try {
@@ -42,7 +42,11 @@ exports.createUser = async (req, res) => {
 // GET ALL USERS
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.findAll({
+    // 1️⃣ Extract pagination parameters
+    const { page, limit, offset } = getPaginationParams(req);
+
+    // 2️⃣ Fetch users with pagination
+    const { rows: users, count: totalCount } = await User.findAndCountAll({
       attributes: { exclude: ['password'] },
       include: [
         {
@@ -50,10 +54,16 @@ exports.getAllUsers = async (req, res) => {
           attributes: ['id', 'name', 'description']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
     });
 
-    res.status(200).json(users);
+    // 3️⃣ Generate pagination metadata
+    const meta = getPaginationMeta(page, limit, totalCount);
+
+    // 4️⃣ Return paginated data
+    res.status(200).json({ users, meta });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
