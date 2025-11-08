@@ -12,7 +12,7 @@ exports.createAbout = async (req, res) => {
     }
      // ✅ Handle uploaded files (via multer)
     const image = req.file
-      ? path.join("uploads", "abutes", req.file.filename)
+      ? path.join("uploads", "abouts", req.file.filename)
       : null;
     const about = await About.create({
       title,

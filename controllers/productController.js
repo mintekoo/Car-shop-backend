@@ -215,7 +215,6 @@ exports.getProductById = async (req, res) => {
         },
         {
           model: Booking,
-          attributes: ["id", "startDate", "endDate", "status"],
         },
         {
           model: Gallery,
