@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const { Testimonial, User } = require("../models/index");
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
@@ -116,21 +117,66 @@ exports.updateTestimonial = async (req, res) => {
     const { id } = req.params;
     const { clientName, content, rating, userId, isActive } = req.body;
 
-    // Find the testimonial by ID
+    // 1️⃣ Find existing testimonial
     const testimonial = await Testimonial.findByPk(id);
     if (!testimonial) {
       return res.status(404).json({ error: "Testimonial not found" });
     }
 
-    // Update the testimonial fields
-    await testimonial.update({ clientName, content, rating, userId, isActive });
+    // 2️⃣ Validate user if provided
+    if (userId) {
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+    }
 
-    return res.status(200).json(testimonial);
+    // 3️⃣ Handle image upload (if a new one was provided)
+    let imagePath = testimonial.image;
+
+    if (req.file) {
+      imagePath = path.join("uploads", "testimonials", req.file.filename);
+
+      // Delete old image if exists
+      if (testimonial.image && fs.existsSync(testimonial.image)) {
+        try {
+          fs.unlinkSync(testimonial.image);
+        } catch (err) {
+          console.warn("Failed to delete old image:", err.message);
+        }
+      }
+    }
+
+    // 4️⃣ Update testimonial fields
+    await testimonial.update({
+      clientName: clientName ?? testimonial.clientName,
+      content: content ?? testimonial.content,
+      rating: rating ?? testimonial.rating,
+      userId: userId ?? testimonial.userId,
+      isActive: isActive !== undefined ? isActive : testimonial.isActive,
+      image: imagePath,
+    });
+
+    // 5️⃣ Fetch updated testimonial with user relation
+    const updatedTestimonial = await Testimonial.findByPk(id, {
+      include: [
+        {
+          model: User,
+          attributes: ["id", "firstName", "lastName", "email"],
+        },
+      ],
+    });
+
+    res.status(200).json({
+      message: "Testimonial updated successfully",
+      testimonial: updatedTestimonial,
+    });
   } catch (error) {
     console.error("Update Testimonial Error:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: error.message });
   }
 };
+
 // DELETE TESTIMONIAL
 exports.deleteTestimonial = async (req, res) => {
   try {

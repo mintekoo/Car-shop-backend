@@ -23,6 +23,7 @@ const sliderRoutes = require('./sliderRoute');
 const termAndConditionRoutes = require('./termAndConditionRoute');
 const testimonialRoutes = require('./testimonialRoute');
 const translationRoutes = require('./translationRoute');
+const dashboardRoutes = require('./dashboardRoute');
 
 // Use routes
 router.use('/users', userRoutes);
@@ -45,6 +46,8 @@ router.use('/sliders', sliderRoutes);
 router.use('/terms-and-conditions', termAndConditionRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/translations', translationRoutes);
+router.use("/dashboard", dashboardRoutes);
+
 
 
 module.exports = router;

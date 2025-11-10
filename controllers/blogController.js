@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require("fs");
 const { Blog, User, Category } = require("../models/index");
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
 
@@ -222,45 +223,56 @@ exports.getBlogsByCategory = async (req, res) => {
 exports.updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, slug, content, image, authorId, categoryId, isPublished } =
-      req.body;
+    const { title, slug, content, authorId, categoryId, isPublished } = req.body;
 
     const blog = await Blog.findByPk(id);
     if (!blog) {
       return res.status(404).json({ error: "Blog not found" });
     }
 
-    // Check if author exists if provided
+    // Validate author & category if provided
     if (authorId) {
       const author = await User.findByPk(authorId);
-      if (!author) {
-        return res.status(404).json({ error: "Author not found" });
-      }
+      if (!author) return res.status(404).json({ error: "Author not found" });
     }
 
-    // Check if category exists if provided
     if (categoryId) {
       const category = await Category.findByPk(categoryId);
-      if (!category) {
-        return res.status(404).json({ error: "Category not found" });
+      if (!category) return res.status(404).json({ error: "Category not found" });
+    }
+
+    // 3️⃣ Handle image upload
+    let imagePath = blog.image;
+    if (req.file) {
+      imagePath = path.join("uploads", "blogs", req.file.filename);
+
+      // Delete old image if it exists
+      if (blog.image && fs.existsSync(blog.image)) {
+        try {
+          fs.unlinkSync(blog.image);
+        } catch (err) {
+          console.warn(" Failed to delete old image:", err.message);
+        }
       }
     }
 
+    // 4️⃣ Update blog fields
     await blog.update({
-      title: title || blog.title,
-      slug: slug || blog.slug,
-      content: content || blog.content,
-      image: image !== undefined ? image : blog.image,
-      authorId: authorId || blog.authorId,
-      categoryId: categoryId !== undefined ? categoryId : blog.categoryId,
-      isPublished: isPublished !== undefined ? isPublished : blog.isPublished,
+      title: title ?? blog.title,
+      slug: slug ?? blog.slug,
+      content: content ?? blog.content,
+      image: imagePath,
+      authorId: authorId ?? blog.authorId,
+      categoryId: categoryId ?? blog.categoryId,
+      isPublished:
+        isPublished !== undefined ? isPublished : blog.isPublished,
     });
 
+    // 5️⃣ Fetch updated blog with relations
     const updatedBlog = await Blog.findByPk(id, {
       include: [
         {
           model: User,
-          // as: 'Author',
           attributes: ["id", "firstName", "lastName", "email"],
         },
         {
@@ -275,6 +287,7 @@ exports.updateBlog = async (req, res) => {
       blog: updatedBlog,
     });
   } catch (error) {
+    console.error(" Update Blog Error:", error);
     res.status(500).json({ error: error.message });
   }
 };

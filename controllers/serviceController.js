@@ -1,6 +1,10 @@
-const path = require('path');
-const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
-const { Service } = require('../models/index');
+const path = require("path");
+const fs = require("fs");
+const {
+  getPaginationParams,
+  getPaginationMeta,
+} = require("../utils/pagination");
+const { Service } = require("../models/index");
 
 // CREATE SERVICE
 exports.createService = async (req, res) => {
@@ -8,7 +12,7 @@ exports.createService = async (req, res) => {
     const { name, description, price, isActive } = req.body;
 
     if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
+      return res.status(400).json({ error: "Name is required" });
     }
     const image = req.file
       ? path.join("uploads", "services", req.file.filename)
@@ -19,12 +23,12 @@ exports.createService = async (req, res) => {
       description,
       price,
       image,
-      isActive: isActive !== undefined ? isActive : true
+      isActive: isActive !== undefined ? isActive : true,
     });
 
     res.status(201).json({
-      message: 'Service created successfully',
-      service
+      message: "Service created successfully",
+      service,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -37,11 +41,13 @@ exports.getAllServices = async (req, res) => {
     const { page, limit, offset } = getPaginationParams(req);
 
     // 2️⃣ Fetch services with pagination
-    const { rows: services, count: totalCount } = await Service.findAndCountAll({
-      order: [['createdAt', 'DESC']],
-      limit,
-      offset,
-    });
+    const { rows: services, count: totalCount } = await Service.findAndCountAll(
+      {
+        order: [["createdAt", "DESC"]],
+        limit,
+        offset,
+      }
+    );
 
     // 3️⃣ Generate pagination metadata
     const meta = getPaginationMeta(page, limit, totalCount);
@@ -53,7 +59,6 @@ exports.getAllServices = async (req, res) => {
   }
 };
 
-
 // GET SERVICE BY ID
 exports.getServiceById = async (req, res) => {
   try {
@@ -62,7 +67,7 @@ exports.getServiceById = async (req, res) => {
     const service = await Service.findByPk(id);
 
     if (!service) {
-      return res.status(404).json({ error: 'Service not found' });
+      return res.status(404).json({ error: "Service not found" });
     }
 
     res.status(200).json(service);
@@ -71,40 +76,51 @@ exports.getServiceById = async (req, res) => {
   }
 };
 
-
 // UPDATE SERVICE
 exports.updateService = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, price, isActive } = req.body;
 
-    // Find service by ID
     const service = await Service.findByPk(id);
     if (!service) {
-      return res.status(404).json({ message: 'Service not found' });
+      return res.status(404).json({ error: "Service not found" });
     }
 
-    // Update only provided fields
-    service.name = name ?? service.name;
-    service.description = description ?? service.description;
-    service.price = price ?? service.price;
-    service.isActive = typeof isActive !== 'undefined' ? isActive : service.isActive;
+    // ✅ Handle uploaded image
+    let imagePath = service.image;
 
-    // Save changes
-    await service.save();
+    if (req.file) {
+      imagePath = path.join("uploads", "services", req.file.filename);
+
+      if (service.image && fs.existsSync(service.image)) {
+        try {
+          fs.unlinkSync(service.image);
+        } catch (err) {
+          console.warn("Failed to delete old image:", err.message);
+        }
+      }
+    }
+
+    // ✅ Update record
+    await service.update({
+      name: name ?? service.name,
+      description: description ?? service.description,
+      price: price ?? service.price,
+      image: imagePath,
+      isActive: isActive !== undefined ? isActive : service.isActive,
+    });
 
     res.status(200).json({
-      message: 'Service updated successfully',
+      message: "Service updated successfully",
       service,
     });
   } catch (error) {
-    console.error('Error updating service:', error);
-    res.status(500).json({
-      message: 'An error occurred while updating the service',
-      error: error.message,
-    });
+    console.error("Update Service Error:", error);
+    res.status(500).json({ error: error.message });
   }
 };
+
 // DELETE SERVICE
 exports.deleteService = async (req, res) => {
   try {
@@ -112,12 +128,12 @@ exports.deleteService = async (req, res) => {
 
     const service = await Service.findByPk(id);
     if (!service) {
-      return res.status(404).json({ error: 'Service not found' });
+      return res.status(404).json({ error: "Service not found" });
     }
 
     await service.destroy();
     res.status(200).json({
-      message: 'Service deleted successfully'
+      message: "Service deleted successfully",
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

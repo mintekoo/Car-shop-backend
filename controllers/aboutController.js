@@ -1,6 +1,10 @@
-const path = require('path');
-const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
-const { About } = require('../models/index');
+const fs = require('fs');
+const path = require("path");
+const {
+  getPaginationParams,
+  getPaginationMeta,
+} = require("../utils/pagination");
+const { About } = require("../models/index");
 
 // CREATE ABOUT
 exports.createAbout = async (req, res) => {
@@ -8,9 +12,9 @@ exports.createAbout = async (req, res) => {
     const { title, description, vision, mission, values, isActive } = req.body;
 
     if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
+      return res.status(400).json({ error: "Title is required" });
     }
-     // ✅ Handle uploaded files (via multer)
+    // ✅ Handle uploaded files (via multer)
     const image = req.file
       ? path.join("uploads", "abouts", req.file.filename)
       : null;
@@ -21,12 +25,12 @@ exports.createAbout = async (req, res) => {
       vision,
       mission,
       values,
-      isActive: isActive !== undefined ? isActive : true
+      isActive: isActive !== undefined ? isActive : true,
     });
 
     res.status(201).json({
-      message: 'About created successfully',
-      about
+      message: "About created successfully",
+      about,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -40,7 +44,7 @@ exports.getAllAbouts = async (req, res) => {
 
     // 2️⃣ Fetch abouts with pagination
     const { rows: abouts, count: totalCount } = await About.findAndCountAll({
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       limit,
       offset,
     });
@@ -59,11 +63,11 @@ exports.getAllAbouts = async (req, res) => {
 exports.getActiveAbout = async (req, res) => {
   try {
     const about = await About.findOne({
-      where: { isActive: true }
+      where: { isActive: true },
     });
 
     if (!about) {
-      return res.status(404).json({ error: 'No active about entry found' });
+      return res.status(404).json({ error: "No active about entry found" });
     }
 
     res.status(200).json(about);
@@ -80,7 +84,7 @@ exports.getAboutById = async (req, res) => {
     const about = await About.findByPk(id);
 
     if (!about) {
-      return res.status(404).json({ error: 'About entry not found' });
+      return res.status(404).json({ error: "About entry not found" });
     }
 
     res.status(200).json(about);
@@ -93,28 +97,44 @@ exports.getAboutById = async (req, res) => {
 exports.updateAbout = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, image, vision, mission, values, isActive } = req.body;
+    const { title, description, vision, mission, values, isActive } = req.body;
 
     const about = await About.findByPk(id);
     if (!about) {
-      return res.status(404).json({ error: 'About entry not found' });
+      return res.status(404).json({ error: "About entry not found" });
     }
 
+    let imagePath = about.image;
+
+    if (req.file) {
+      imagePath = path.join("uploads", "abouts", req.file.filename);
+
+      if (about.image && fs.existsSync(about.image)) {
+        try {
+          fs.unlinkSync(about.image);
+        } catch (err) {
+          console.warn("Failed to delete old image:", err.message);
+        }
+      }
+    }
+
+    // ✅ Update record
     await about.update({
-      title: title || about.title,
-      description: description !== undefined ? description : about.description,
-      image: image !== undefined ? image : about.image,
-      vision: vision !== undefined ? vision : about.vision,
-      mission: mission !== undefined ? mission : about.mission,
-      values: values !== undefined ? values : about.values,
-      isActive: isActive !== undefined ? isActive : about.isActive
+      title: title ?? about.title,
+      description: description ?? about.description,
+      image: imagePath,
+      vision: vision ?? about.vision,
+      mission: mission ?? about.mission,
+      values: values ?? about.values,
+      isActive: isActive !== undefined ? isActive : about.isActive,
     });
 
     res.status(200).json({
-      message: 'About updated successfully',
-      about
+      message: "About updated successfully",
+      about,
     });
   } catch (error) {
+    console.error("Update About Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -126,12 +146,12 @@ exports.deleteAbout = async (req, res) => {
 
     const about = await About.findByPk(id);
     if (!about) {
-      return res.status(404).json({ error: 'About entry not found' });
+      return res.status(404).json({ error: "About entry not found" });
     }
 
     await about.destroy();
     res.status(200).json({
-      message: 'About deleted successfully'
+      message: "About deleted successfully",
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -145,7 +165,7 @@ exports.toggleAboutActivation = async (req, res) => {
 
     const about = await About.findByPk(id);
     if (!about) {
-      return res.status(404).json({ error: 'About entry not found' });
+      return res.status(404).json({ error: "About entry not found" });
     }
 
     // Deactivate all other about entries if activating this one
@@ -156,8 +176,10 @@ exports.toggleAboutActivation = async (req, res) => {
     await about.update({ isActive: !about.isActive });
 
     res.status(200).json({
-      message: `About ${about.isActive ? 'activated' : 'deactivated'} successfully`,
-      about
+      message: `About ${
+        about.isActive ? "activated" : "deactivated"
+      } successfully`,
+      about,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

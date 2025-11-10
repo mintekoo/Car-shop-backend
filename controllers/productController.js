@@ -288,9 +288,9 @@ exports.updateProduct = async (req, res) => {
       categoryId,
       status,
       features,
-      images,
       location,
       isActive,
+      replaceImages, // boolean flag to replace existing images
     } = req.body;
 
     // Find product by ID
@@ -303,10 +303,10 @@ exports.updateProduct = async (req, res) => {
     // Build update object with only provided fields
     const updateData = {};
 
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (model !== undefined) updateData.model = model;
-    if (make !== undefined) updateData.make = make;
+    if (title !== undefined) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description?.trim();
+    if (model !== undefined) updateData.model = model.trim();
+    if (make !== undefined) updateData.make = make.trim();
     if (year !== undefined) updateData.year = year;
     if (seatingCapacity !== undefined)
       updateData.seatingCapacity = seatingCapacity;
@@ -314,53 +314,30 @@ exports.updateProduct = async (req, res) => {
     if (pricePerHour !== undefined) updateData.pricePerHour = pricePerHour;
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (status !== undefined) updateData.status = status;
-    if (features !== undefined) updateData.features = features;
-    if (images !== undefined) updateData.images = images;
-    if (location !== undefined) updateData.location = location;
+    if (features !== undefined) updateData.features = Array.isArray(features) ? features : [];
+    if (location !== undefined) updateData.location = location?.trim();
     if (isActive !== undefined) updateData.isActive = isActive;
+
+    // ✅ Handle uploaded files (via multer)
+    if (req.files && req.files.length > 0) {
+      const uploadedImages = req.files.map((f) =>
+        path.join("uploads", "product", f.filename)
+      );
+
+      if (replaceImages === "true" || replaceImages === true) {
+        // Replace existing images
+        updateData.images = uploadedImages;
+      } else {
+        // Append to existing images
+        updateData.images = [...(product.images || []), ...uploadedImages];
+      }
+    }
 
     // Check if there's anything to update
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "No fields to update" });
     }
 
-    // Validate data types for numeric fields
-    if (
-      updateData.year &&
-      (typeof updateData.year !== "number" ||
-        updateData.year < 1900 ||
-        updateData.year > new Date().getFullYear() + 1)
-    ) {
-      return res.status(400).json({ error: "Valid year is required" });
-    }
-
-    if (
-      updateData.seatingCapacity &&
-      (typeof updateData.seatingCapacity !== "number" ||
-        updateData.seatingCapacity < 1)
-    ) {
-      return res
-        .status(400)
-        .json({ error: "Valid seating capacity is required" });
-    }
-
-    if (
-      updateData.pricePerDay &&
-      (typeof updateData.pricePerDay !== "number" || updateData.pricePerDay < 0)
-    ) {
-      return res.status(400).json({ error: "Valid price per day is required" });
-    }
-
-    if (
-      updateData.pricePerHour !== undefined &&
-      updateData.pricePerHour !== null &&
-      (typeof updateData.pricePerHour !== "number" ||
-        updateData.pricePerHour < 0)
-    ) {
-      return res
-        .status(400)
-        .json({ error: "Valid price per hour is required" });
-    }
 
     // Check if category exists if provided
     if (updateData.categoryId) {
@@ -391,7 +368,6 @@ exports.updateProduct = async (req, res) => {
       include: [
         {
           model: User,
-          // as: 'Owner',
           attributes: ["id", "firstName", "lastName", "email", "phone"],
         },
         {
@@ -429,6 +405,7 @@ exports.updateProduct = async (req, res) => {
     });
   }
 };
+
 // DELETE PRODUCT
 exports.deleteProduct = async (req, res) => {
   try {

@@ -114,7 +114,7 @@ exports.getCategoryById = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, image, isActive } = req.body;
+    const { name, description, isActive } = req.body;
 
     // Find the category by ID
     const category = await Category.findByPk(id);
@@ -126,12 +126,18 @@ exports.updateCategory = async (req, res) => {
       });
     }
 
+    // Handle uploaded image (if any)
+    let imagePath;
+    if (req.file) {
+      imagePath = path.join('uploads', 'categories', req.file.filename);
+    }
+
     // Prepare update data
     const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (image !== undefined) updateData.image = image;
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description.trim();
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (imagePath) updateData.image = imagePath; // Only update if a file is uploaded
 
     // Update the category
     await category.update(updateData);
@@ -147,12 +153,25 @@ exports.updateCategory = async (req, res) => {
 
   } catch (error) {
     console.error('Error updating category:', error);
-    
+
     // Handle unique constraint violation
     if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(400).json({
         success: false,
         message: 'Category name already exists'
+      });
+    }
+
+    // Handle validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(err => ({
+        field: err.path,
+        message: err.message
+      }));
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        details: validationErrors
       });
     }
 
@@ -163,6 +182,7 @@ exports.updateCategory = async (req, res) => {
     });
   }
 };
+
 
 
 // DELETE CATEGORY
