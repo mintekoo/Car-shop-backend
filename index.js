@@ -14,6 +14,13 @@ app.use(express.urlencoded({ extended: true }));
 const routes = require("./routes");
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api", routes);
+app.get("/", (req, res) => {
+  res.json({
+    status: "success",
+    message: "🎉 Welcome to the Addinas Car Service API!"
+  });
+});
+
 
 // Handle 404 - Route Not Found
 app.use("*", (req, res) => {
@@ -48,7 +55,9 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
 
 // ===============================================
 // 📤 EXPORT APP (for testing or external usage)

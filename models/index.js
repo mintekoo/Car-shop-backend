@@ -28,10 +28,6 @@ const User = require("./user");
 // -------------------- RELATIONS -------------------- //
 
 function setupAssociations() {
-  // User ↔ Role (One-to-Many)
-  Role.hasMany(User, { foreignKey: "roleId" });
-  User.belongsTo(Role, { foreignKey: "roleId" });
-
   // User ↔ Product (One-to-Many)
   User.hasMany(Product, { foreignKey: "ownerId" });
   Product.belongsTo(User, { foreignKey: "ownerId" });
@@ -117,9 +113,6 @@ const syncDB = async (options = { alter: false }) => {
     await Permission.sync(options);
     console.log("✅ Permission table synced.");
 
-    // await RolePermissions?.sync?.(options);
-    // console.log("✅ RolePermissions table synced.");
-
     await About.sync(options);
     console.log("✅ About table synced.");
 
@@ -153,7 +146,6 @@ const syncDB = async (options = { alter: false }) => {
     throw err;
   }
 };
-
 
 // -------------------- EXPORT -------------------- //
 module.exports = {

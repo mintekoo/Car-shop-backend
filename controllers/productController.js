@@ -44,42 +44,11 @@ exports.createProduct = async (req, res) => {
     if (!make || typeof make !== "string") {
       return res.status(400).json({ error: "Valid make is required" });
     }
-    // if (
-    //   !year ||
-    //   typeof year !== "number" ||
-    //   year < 1900 ||
-    //   year > new Date().getFullYear() + 1
-    // ) {
-    //   return res.status(400).json({ error: "Valid year is required" });
-    // }
-    // if (
-    //   !seatingCapacity ||
-    //   typeof seatingCapacity !== "number" ||
-    //   seatingCapacity < 1
-    // ) {
-    //   return res
-    //     .status(400)
-    //     .json({ error: "Valid seating capacity is required" });
-    // }
-    // if (!pricePerDay || typeof pricePerDay !== "number" || pricePerDay < 0) {
-    //   return res.status(400).json({ error: "Valid price per day is required" });
-    // }
-    // if (!ownerId || typeof ownerId !== "number" || ownerId < 1) {
-    //   return res.status(400).json({ error: "Valid owner ID is required" });
-    // }
-
-    // Check if owner exists and has correct role
-    const owner = await User.findByPk(ownerId);
-    if (!owner) {
-      return res.status(404).json({ error: "Owner not found" });
-    }
-    if (owner.role !== "CarOwner" && owner.role !== "Admin") {
+    if (!ownerId || isNaN(ownerId)) {
       return res
         .status(400)
-        .json({ error: "User must be a CarOwner or Admin to create products" });
+        .json({ error: "Valid ownerId (integer) is required" });
     }
-
-    // Check if category exists if provided
     if (categoryId) {
       const category = await Category.findByPk(categoryId);
       if (!category) {
@@ -115,14 +84,12 @@ exports.createProduct = async (req, res) => {
       include: [
         {
           model: User,
-          // as: 'Owner',
           attributes: ["id", "firstName", "lastName", "email", "phone"],
         },
         {
           model: Category,
           attributes: ["id", "name", "description"],
         },
-        // Remove Location include if you don't have Location model
       ],
     });
 
@@ -290,23 +257,20 @@ exports.updateProduct = async (req, res) => {
       features,
       location,
       isActive,
-      replaceImages, // boolean flag to replace existing images
+      replaceImages,
     } = req.body;
 
-    // Find product by ID
     const product = await Product.findByPk(id);
-
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    // Build update object with only provided fields
     const updateData = {};
 
-    if (title !== undefined) updateData.title = title.trim();
-    if (description !== undefined) updateData.description = description?.trim();
-    if (model !== undefined) updateData.model = model.trim();
-    if (make !== undefined) updateData.make = make.trim();
+    if (title) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (model) updateData.model = model.trim();
+    if (make) updateData.make = make.trim();
     if (year !== undefined) updateData.year = year;
     if (seatingCapacity !== undefined)
       updateData.seatingCapacity = seatingCapacity;
@@ -314,32 +278,45 @@ exports.updateProduct = async (req, res) => {
     if (pricePerHour !== undefined) updateData.pricePerHour = pricePerHour;
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (status !== undefined) updateData.status = status;
-    if (features !== undefined) updateData.features = Array.isArray(features) ? features : [];
-    if (location !== undefined) updateData.location = location?.trim();
+    if (location !== undefined) updateData.location = location.trim();
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    // ✅ Handle uploaded files (via multer)
+    // 🧩 Handle features (ensure JSON array)
+    if (features !== undefined) {
+      if (typeof features === "string") {
+        try {
+          updateData.features = JSON.parse(features);
+        } catch {
+          return res.status(400).json({ error: "Invalid JSON for features" });
+        }
+      } else if (Array.isArray(features)) {
+        updateData.features = features;
+      } else {
+        return res
+          .status(400)
+          .json({ error: "Features must be an array or valid JSON string" });
+      }
+    }
+
+    // 🖼️ Handle image updates
     if (req.files && req.files.length > 0) {
       const uploadedImages = req.files.map((f) =>
         path.join("uploads", "product", f.filename)
       );
 
       if (replaceImages === "true" || replaceImages === true) {
-        // Replace existing images
+        // Replace all existing images
         updateData.images = uploadedImages;
       } else {
-        // Append to existing images
-        updateData.images = [...(product.images || []), ...uploadedImages];
+        // Append new images to existing ones
+        const currentImages = Array.isArray(product.images)
+          ? product.images
+          : [];
+        updateData.images = [...currentImages, ...uploadedImages];
       }
     }
 
-    // Check if there's anything to update
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ error: "No fields to update" });
-    }
-
-
-    // Check if category exists if provided
+    // 🔍 Validate category if provided
     if (updateData.categoryId) {
       const category = await Category.findByPk(updateData.categoryId);
       if (!category) {
@@ -347,23 +324,18 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
-    // Validate status if provided
-    if (
-      updateData.status &&
-      !["Available", "Unavailable", "Maintenance", "Rented"].includes(
-        updateData.status
-      )
-    ) {
+    // ✅ Validate product status
+    const validStatuses = ["Available", "Rented", "Maintenance", "Unavailable"];
+    if (updateData.status && !validStatuses.includes(updateData.status)) {
       return res.status(400).json({
-        error:
-          "Invalid status. Must be one of: Available, Unavailable, Maintenance, Rented",
+        error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
       });
     }
 
-    // Update product
+    // ⚙️ Perform update
     await product.update(updateData);
 
-    // Get updated product with relations
+    // 🧾 Fetch updated product with relations
     const updatedProduct = await Product.findByPk(id, {
       include: [
         {
@@ -377,7 +349,7 @@ exports.updateProduct = async (req, res) => {
       ],
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Product updated successfully",
       product: updatedProduct,
     });

@@ -1,4 +1,4 @@
-const { User, Role, Product, Booking, Blog, Testimonial } = require('../models/index');
+const { User, Product, Booking, Blog, Testimonial } = require('../models/index');
 const bcrypt = require('bcrypt');
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
 // CREATE USER
@@ -39,6 +39,50 @@ exports.createUser = async (req, res) => {
   }
 };
 
+
+exports.loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    // Find user by email
+    const user = await User.findOne({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Invalid email or password" });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({ error: "Your account is deactivated" });
+    }
+
+    // Compare password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // Remove password before sending response
+    const userData = user.toJSON();
+    delete userData.password;
+
+    res.status(200).json({
+      message: "Login successful",
+      user: userData,
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 // GET ALL USERS
 exports.getAllUsers = async (req, res) => {
   try {
@@ -48,12 +92,7 @@ exports.getAllUsers = async (req, res) => {
     // 2️⃣ Fetch users with pagination
     const { rows: users, count: totalCount } = await User.findAndCountAll({
       attributes: { exclude: ['password'] },
-      include: [
-        {
-          model: Role,
-          attributes: ['id', 'name', 'description']
-        }
-      ],
+      // ],
       order: [['createdAt', 'DESC']],
       limit,
       offset
@@ -77,10 +116,6 @@ exports.getUserById = async (req, res) => {
     const user = await User.findByPk(id, {
       attributes: { exclude: ['password'] },
       include: [
-        {
-          model: Role,
-          attributes: ['id', 'name', 'description']
-        },
         {
           model: Product,
           // as: 'Products',
