@@ -173,20 +173,20 @@ exports.getProductsByCategory = async (req, res) => {
     const { rows: products, count: totalCount } = await Product.findAndCountAll(
       {
         where: { categoryId },
-        include: [
-          {
-            model: User,
-            attributes: ["id", "firstName", "lastName", "email"],
-          },
-          {
-            model: Category,
-            attributes: ["id", "name"],
-          },
-          {
-            model: Location,
-            attributes: ["id", "name"],
-          },
-        ],
+        // include: [
+        //   {
+        //     model: User,
+        //     attributes: ["id", "firstName", "lastName", "email"],
+        //   },
+        //   {
+        //     model: Category,
+        //     attributes: ["id", "name"],
+        //   },
+        //   {
+        //     model: Location,
+        //     attributes: ["id", "name"],
+        //   },
+        // ],
         order: [["createdAt", "DESC"]],
         limit,
         offset,
