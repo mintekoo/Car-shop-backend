@@ -33,6 +33,10 @@ const Booking = sequelize.define(
       type: DataTypes.FLOAT,
       allowNull: false,
     },
+    driver:{
+      type: DataTypes.ENUM("yes", "no"),
+      defaultValue: "no"
+    },
     paymentStatus: {
       type: DataTypes.ENUM("Pending", "Paid", "Confirmed", "Refunded"),
       defaultValue: "Pending",

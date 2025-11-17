@@ -44,23 +44,9 @@ exports.createBlog = async (req, res) => {
       isPublished: isPublished || false,
     });
 
-    const blogWithRelations = await Blog.findByPk(blog.id, {
-      include: [
-        {
-          model: User,
-          // as: 'Author',
-          attributes: ["id", "firstName", "lastName", "email"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-      ],
-    });
-
     res.status(201).json({
       message: "Blog created successfully",
-      blog: blogWithRelations,
+      blog,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -75,17 +61,17 @@ exports.getAllBlogs = async (req, res) => {
 
     // 2️⃣ Fetch blogs with pagination
     const { rows: blogs, count: totalCount } = await Blog.findAndCountAll({
-      include: [
-        {
-          model: User,
-          // as: 'Author',
-          attributes: ["id", "firstName", "lastName", "email"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-      ],
+      // include: [
+      //   {
+      //     model: User,
+      //     // as: 'Author',
+      //     attributes: ["id", "firstName", "lastName", "email"],
+      //   },
+      //   {
+      //     model: Category,
+      //     attributes: ["id", "name", "description"],
+      //   },
+      // ],
       order: [["createdAt", "DESC"]],
       limit,
       offset,
@@ -106,17 +92,17 @@ exports.getPublishedBlogs = async (req, res) => {
   try {
     const blogs = await Blog.findAll({
       where: { isPublished: true },
-      include: [
-        {
-          model: User,
-          // as: 'Author',
-          attributes: ["id", "firstName", "lastName", "email"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-      ],
+      // include: [
+      //   {
+      //     model: User,
+      //     // as: 'Author',
+      //     attributes: ["id", "firstName", "lastName", "email"],
+      //   },
+      //   {
+      //     model: Category,
+      //     attributes: ["id", "name", "description"],
+      //   },
+      // ],
       order: [["createdAt", "DESC"]],
     });
 
@@ -132,17 +118,17 @@ exports.getBlogById = async (req, res) => {
     const { id } = req.params;
 
     const blog = await Blog.findByPk(id, {
-      include: [
-        {
-          model: User,
-          // as: 'Author',
-          attributes: ["id", "firstName", "lastName", "email"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-      ],
+      // include: [
+      //   {
+      //     model: User,
+      //     // as: 'Author',
+      //     attributes: ["id", "firstName", "lastName", "email"],
+      //   },
+      //   {
+      //     model: Category,
+      //     attributes: ["id", "name", "description"],
+      //   },
+      // ],
     });
 
     if (!blog) {
@@ -268,23 +254,23 @@ exports.updateBlog = async (req, res) => {
         isPublished !== undefined ? isPublished : blog.isPublished,
     });
 
-    // 5️⃣ Fetch updated blog with relations
-    const updatedBlog = await Blog.findByPk(id, {
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "email"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-      ],
-    });
+    // // 5️⃣ Fetch updated blog with relations
+    // const updatedBlog = await Blog.findByPk(id, {
+    //   include: [
+    //     {
+    //       model: User,
+    //       attributes: ["id", "firstName", "lastName", "email"],
+    //     },
+    //     {
+    //       model: Category,
+    //       attributes: ["id", "name", "description"],
+    //     },
+    //   ],
+    // });
 
     res.status(200).json({
       message: "Blog updated successfully",
-      blog: updatedBlog,
+      // blog: updatedBlog,
     });
   } catch (error) {
     console.error(" Update Blog Error:", error);

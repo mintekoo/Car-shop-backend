@@ -1,7 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { Testimonial, User } = require("../models/index");
-const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
+const {
+  getPaginationParams,
+  getPaginationMeta,
+} = require("../utils/pagination");
 
 // CREATE TESTIMONIAL
 exports.createTestimonial = async (req, res) => {
@@ -27,7 +30,7 @@ exports.createTestimonial = async (req, res) => {
       ? path.join("uploads", "testimonials", req.file.filename)
       : null;
 
-    const testimonial = await Testimonial.create({
+    await Testimonial.create({
       clientName,
       content,
       rating,
@@ -36,21 +39,8 @@ exports.createTestimonial = async (req, res) => {
       image,
     });
 
-    const testimonialWithRelations = await Testimonial.findByPk(
-      testimonial.id,
-      {
-        include: [
-          {
-            model: User,
-            attributes: ["id", "firstName", "lastName", "email"],
-          },
-        ],
-      }
-    );
-
     res.status(201).json({
       message: "Testimonial created successfully",
-      testimonial: testimonialWithRelations,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -66,12 +56,12 @@ exports.getAllTestimonials = async (req, res) => {
     // 2. Fetch testimonials with pagination
     const { rows: testimonials, count: totalCount } =
       await Testimonial.findAndCountAll({
-        include: [
-          {
-            model: User,
-            attributes: ["id", "firstName", "lastName", "email"],
-          },
-        ],
+        // include: [
+        //   {
+        //     model: User,
+        //     attributes: ["id", "firstName", "lastName", "email"],
+        //   },
+        // ],
         order: [["createdAt", "DESC"]],
         limit,
         offset,
@@ -93,12 +83,12 @@ exports.getTestimonialById = async (req, res) => {
     const { id } = req.params;
 
     const testimonial = await Testimonial.findByPk(id, {
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "email"],
-        },
-      ],
+      // include: [
+      //   {
+      //     model: User,
+      //     attributes: ["id", "firstName", "lastName", "email"],
+      //   },
+      // ],
     });
 
     if (!testimonial) {

@@ -37,14 +37,14 @@ function setupAssociations() {
   Product.belongsTo(Category, { foreignKey: "categoryId" });
 
   // Product ↔ Location (One-to-Many)
-  Location.hasMany(Product, { foreignKey: "locationId" });
-  Product.belongsTo(Location, { foreignKey: "locationId" });
+  // Location.hasMany(Product, { foreignKey: "locationId" });
+  // Product.belongsTo(Location, { foreignKey: "locationId" });
 
   // User ↔ Booking (One-to-Many)
-  User.hasMany(Booking, { foreignKey: "renterId" });
-  User.hasMany(Booking, { foreignKey: "ownerId" });
-  Booking.belongsTo(User, { foreignKey: "renterId" });
-  Booking.belongsTo(User, { foreignKey: "ownerId" });
+  // User.hasMany(Booking, { foreignKey: "renterId" });
+  // User.hasMany(Booking, { foreignKey: "ownerId" });
+  // Booking.belongsTo(User, { foreignKey: "renterId" });
+  // Booking.belongsTo(User, { foreignKey: "ownerId" });
 
   // Product ↔ Booking (One-to-Many)
   Product.hasMany(Booking, { foreignKey: "productId" });

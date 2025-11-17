@@ -4,8 +4,8 @@ const {
   User,
   Category,
   Location,
-  Booking,
-  Gallery,
+  // Booking,
+  // Gallery,
 } = require("../models/index");
 const {
   getPaginationParams,
@@ -61,8 +61,8 @@ exports.createProduct = async (req, res) => {
       ? req.files.map((f) => path.join("uploads", "product", f.filename))
       : [];
 
-    // ✅ Create the product
-    const product = await Product.create({
+    // Create product
+    await Product.create({
       title: title.trim(),
       description: description?.trim(),
       model: model.trim(),
@@ -80,43 +80,10 @@ exports.createProduct = async (req, res) => {
       isActive: isActive !== undefined ? isActive : true,
     });
 
-    const productWithRelations = await Product.findByPk(product.id, {
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "email", "phone"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-      ],
-    });
-
-    res.status(201).json({
-      message: "Product created successfully",
-      product: productWithRelations,
-    });
+    // Simple success response
+    res.status(201).json({ message: "Product created successfully" });
   } catch (error) {
     console.error("Create product error:", error);
-
-    // Handle specific Sequelize errors
-    if (error.name === "SequelizeValidationError") {
-      const validationErrors = error.errors.map((err) => ({
-        field: err.path,
-        message: err.message,
-      }));
-      return res.status(400).json({
-        error: "Validation failed",
-        details: validationErrors,
-      });
-    }
-
-    if (error.name === "SequelizeForeignKeyConstraintError") {
-      return res
-        .status(400)
-        .json({ error: "Invalid owner or category reference" });
-    }
 
     res.status(500).json({
       error: "Internal server error",
@@ -131,21 +98,17 @@ exports.getAllProducts = async (req, res) => {
     const { page, limit, offset } = getPaginationParams(req);
     const { rows: products, count: totalCount } = await Product.findAndCountAll(
       {
-        include: [
-          {
-            model: User,
-            // as: 'Owner',
-            attributes: ["id", "firstName", "lastName", "email"],
-          },
-          {
-            model: Category,
-            attributes: ["id", "name"],
-          },
-          {
-            model: Location,
-            attributes: ["id", "name"],
-          },
-        ],
+        // include: [
+        //   {
+        //     model: User,
+        //     // as: 'Owner',
+        //     attributes: ["id", "firstName", "lastName", "email"],
+        //   },
+        //   {
+        //     model: Category,
+        //     attributes: ["id", "name"],
+        //   }
+        // ],
         order: [["createdAt", "DESC"]],
         limit,
         offset,
@@ -166,28 +129,28 @@ exports.getProductById = async (req, res) => {
     const { id } = req.params;
 
     const product = await Product.findByPk(id, {
-      include: [
-        {
-          model: User,
-          // as: 'Owner',
-          attributes: ["id", "firstName", "lastName", "email", "phone"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-        {
-          model: Location,
-          attributes: ["id", "name", "description"],
-        },
-        {
-          model: Booking,
-        },
-        {
-          model: Gallery,
-          attributes: ["id", "title", "images"],
-        },
-      ],
+      // include: [
+      //   {
+      //     model: User,
+      //     // as: 'Owner',
+      //     attributes: ["id", "firstName", "lastName", "email", "phone"],
+      //   },
+      //   {
+      //     model: Category,
+      //     attributes: ["id", "name", "description"],
+      //   },
+      //   {
+      //     model: Location,
+      //     attributes: ["id", "name", "description"],
+      //   },
+      //   {
+      //     model: Booking,
+      //   },
+      //   {
+      //     model: Gallery,
+      //     attributes: ["id", "title", "images"],
+      //   },
+      // ],
     });
 
     if (!product) {
@@ -336,22 +299,22 @@ exports.updateProduct = async (req, res) => {
     await product.update(updateData);
 
     // 🧾 Fetch updated product with relations
-    const updatedProduct = await Product.findByPk(id, {
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "email", "phone"],
-        },
-        {
-          model: Category,
-          attributes: ["id", "name", "description"],
-        },
-      ],
-    });
+    // const updatedProduct = await Product.findByPk(id, {
+    //   include: [
+    //     {
+    //       model: User,
+    //       attributes: ["id", "firstName", "lastName", "email", "phone"],
+    //     },
+    //     {
+    //       model: Category,
+    //       attributes: ["id", "name", "description"],
+    //     },
+    //   ],
+    // });
 
     return res.status(200).json({
       message: "Product updated successfully",
-      product: updatedProduct,
+      // product: updatedProduct,
     });
   } catch (error) {
     console.error("Error updating product:", error);

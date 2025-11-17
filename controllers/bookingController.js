@@ -15,6 +15,7 @@ exports.createBooking = async (req, res) => {
       startDate,
       endDate,
       totalPrice,
+      driver,
       paymentStatus,
     } = req.body;
 
@@ -39,24 +40,20 @@ exports.createBooking = async (req, res) => {
     }
 
     // Create booking
-    const booking = await Booking.create({
+    await Booking.create({
       productId,
       fullName,
       Phone: normalizedPhone,
       startDate,
       endDate,
       totalPrice,
+      driver,
       paymentStatus: paymentStatus || "Pending",
     });
 
-    // Include product info
-    const bookingWithProduct = await Booking.findByPk(booking.id, {
-      include: [{ model: Product, attributes: ["id", "title", "pricePerDay"] }],
-    });
 
     res.status(201).json({
       message: "Booking created successfully",
-      booking: bookingWithProduct,
     });
   } catch (error) {
     console.error("Error creating booking:", error);
@@ -70,7 +67,7 @@ exports.getAllBookings = async (req, res) => {
     const { page, limit, offset } = getPaginationParams(req);
 
     const { rows: bookings, count: totalCount } = await Booking.findAndCountAll({
-      include: [{ model: Product, attributes: ["id", "title", "pricePerDay"] }],
+      // include: [{ model: Product, attributes: ["id", "title", "pricePerDay"] }],
       order: [["createdAt", "DESC"]],
       limit,
       offset,
@@ -90,7 +87,7 @@ exports.getBookingById = async (req, res) => {
     const { id } = req.params;
 
     const booking = await Booking.findByPk(id, {
-      include: [{ model: Product, attributes: ["id", "title", "pricePerDay", "description"] }],
+      // include: [{ model: Product, attributes: ["id", "title", "pricePerDay", "description"] }],
     });
 
     if (!booking) {
@@ -107,7 +104,7 @@ exports.getBookingById = async (req, res) => {
 exports.updateBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, Phone, startDate, endDate, totalPrice, paymentStatus } = req.body;
+    const { fullName, Phone, startDate, endDate, totalPrice, driver, paymentStatus } = req.body;
 
     const booking = await Booking.findByPk(id);
     if (!booking) {
@@ -134,6 +131,15 @@ exports.updateBooking = async (req, res) => {
       }
       updateData.totalPrice = totalPrice;
     }
+    if (driver !== undefined){
+      const validStatuses = ["yes", "no"];
+      if (!validStatuses.includes(driver)){
+        return res.status(400).json({
+          error: "Invalide driver status. must be one of: yes or no"
+        });
+      }
+      updateData.driver = driver;
+    }
     if (paymentStatus !== undefined) {
       const validStatuses = ["Pending", "Paid", "Confirmed", "Refunded"];
       if (!validStatuses.includes(paymentStatus)) {
@@ -149,14 +155,8 @@ exports.updateBooking = async (req, res) => {
     }
 
     await booking.update(updateData);
-
-    const updatedBooking = await Booking.findByPk(id, {
-      include: [{ model: Product, attributes: ["id", "title", "pricePerDay"] }],
-    });
-
     res.status(200).json({
       message: "Booking updated successfully",
-      booking: updatedBooking,
     });
   } catch (error) {
     console.error("Error updating booking:", error);
