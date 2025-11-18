@@ -147,19 +147,8 @@ exports.updateTestimonial = async (req, res) => {
       image: imagePath,
     });
 
-    // 5️⃣ Fetch updated testimonial with user relation
-    const updatedTestimonial = await Testimonial.findByPk(id, {
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "email"],
-        },
-      ],
-    });
-
     res.status(200).json({
       message: "Testimonial updated successfully",
-      testimonial: updatedTestimonial,
     });
   } catch (error) {
     console.error("Update Testimonial Error:", error);
