@@ -13,17 +13,22 @@ const Partner = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    logo: {
+    image: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    url: {
-      type: DataTypes.STRING,
+    contact: {
+      type: DataTypes.JSON,
       allowNull: true,
-    },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      defaultValue: null,
+      get() {
+        const raw = this.getDataValue("contact");
+        try {
+          return typeof raw === "string" ? JSON.parse(raw) : raw;
+        } catch {
+          return raw;
+        }
+      },
     },
   },
   {

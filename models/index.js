@@ -95,6 +95,9 @@ const syncDB = async (options = { alter: false }) => {
     await Location.sync(options);
     console.log("✅ Location table synced.");
 
+    await Partner.sync(options);
+    console.log("✅ Partner table synced.");
+
     await Product.sync(options);
     console.log("✅ Product table synced.");
 

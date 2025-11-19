@@ -1,108 +1,148 @@
 const { Partner } = require('../models/index');
+const path = require("path");
+const fs = require("fs");
+const {
+  getPaginationParams,
+  getPaginationMeta,
+} = require("../utils/pagination");
 
+// -------------------------------------------------------
 // CREATE PARTNER
+// -------------------------------------------------------
 exports.createPartner = async (req, res) => {
   try {
-    const { name, logo, url, isActive } = req.body;
+    const { name, contact } = req.body;
 
     if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
+      return res.status(400).json({ error: "Name is required" });
     }
 
-    const partner = await Partner.create({
+    // Store uploaded image as "uploads/partners/filename"
+    const image = req.file
+      ? path.join("uploads", "partners", req.file.filename)
+      : null;
+
+    const newPartner = await Partner.create({
       name,
-      logo,
-      url,
-      isActive: isActive !== undefined ? isActive : true
+      image,
+      contact: contact ? JSON.parse(contact) : null,
     });
 
     res.status(201).json({
-      message: 'Partner created successfully',
-      partner
+      message: "Partner created successfully",
+      data: newPartner,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+// -------------------------------------------------------
 // GET ALL PARTNERS
+// -------------------------------------------------------
 exports.getAllPartners = async (req, res) => {
   try {
-    const partners = await Partner.findAll({
-      order: [['createdAt', 'DESC']]
+    const { page, limit, offset } = getPaginationParams(req);
+
+    const { rows, count } = await Partner.findAndCountAll({
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]],
     });
 
-    res.status(200).json(partners);
+    const meta = getPaginationMeta(page, limit, count);
+
+    res.json({ data: rows, meta });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+// -------------------------------------------------------
 // GET PARTNER BY ID
+// -------------------------------------------------------
 exports.getPartnerById = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const partner = await Partner.findByPk(id);
+    const partner = await Partner.findByPk(req.params.id);
 
     if (!partner) {
-      return res.status(404).json({ error: 'Partner not found' });
+      return res.status(404).json({ message: "Partner not found" });
     }
 
-    res.status(200).json(partner);
+    res.json(partner);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-
+// -------------------------------------------------------
 // UPDATE PARTNER
+// -------------------------------------------------------
 exports.updatePartner = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, logo, url, isActive } = req.body;
+    const partner = await Partner.findByPk(req.params.id);
 
-    // Find partner by ID
-    const partner = await Partner.findByPk(id);
     if (!partner) {
-      return res.status(404).json({ message: 'Partner not found' });
+      return res.status(404).json({ message: "Partner not found" });
     }
 
-    // Update only provided fields
-    partner.name = name ?? partner.name;
-    partner.logo = logo ?? partner.logo;
-    partner.url = url ?? partner.url;
-    partner.isActive = typeof isActive !== 'undefined' ? isActive : partner.isActive;
+    let imagePath = partner.image;
 
-    // Save changes
-    await partner.save();
+    // If uploading new image
+    if (req.file) {
+      // Build new path
+      imagePath = path.join("uploads", "partners", req.file.filename);
 
-    res.status(200).json({
-      message: 'Partner updated successfully',
-      partner,
+      // Delete old image if exists
+      if (partner.image && fs.existsSync(partner.image)) {
+        try {
+          fs.unlinkSync(partner.image);
+        } catch (err) {
+          console.warn("Failed to delete old image:", err.message);
+        }
+      }
+    }
+
+    await partner.update({
+      name: req.body.name ?? partner.name,
+      contact: req.body.contact
+        ? JSON.parse(req.body.contact)
+        : partner.contact,
+      image: imagePath,
+    });
+
+    res.json({
+      message: "Partner updated successfully",
+      data: partner,
     });
   } catch (error) {
-    console.error('Error updating partner:', error);
-    res.status(500).json({
-      message: 'An error occurred while updating the partner',
-      error: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
+
+// -------------------------------------------------------
 // DELETE PARTNER
+// -------------------------------------------------------
 exports.deletePartner = async (req, res) => {
   try {
-    const { id } = req.params;
+    const partner = await Partner.findByPk(req.params.id);
 
-    const partner = await Partner.findByPk(id);
     if (!partner) {
-      return res.status(404).json({ error: 'Partner not found' });
+      return res.status(404).json({ message: "Partner not found" });
+    }
+
+    // Delete image file if exists
+    if (partner.image && fs.existsSync(partner.image)) {
+      try {
+        fs.unlinkSync(partner.image);
+      } catch (err) {
+        console.warn("Failed to delete image:", err.message);
+      }
     }
 
     await partner.destroy();
-    res.status(200).json({
-      message: 'Partner deleted successfully'
-    });
+
+    res.json({ message: "Partner deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
