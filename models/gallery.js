@@ -17,14 +17,14 @@ const Gallery = sequelize.define(
       type: DataTypes.JSON,
       allowNull: false,
       defaultValue: [],
-    },
-    productId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      get() {
+        const raw = this.getDataValue("images");
+        try {
+          return typeof raw === "string" ? JSON.parse(raw) : raw;
+        } catch {
+          return raw;
+        }
+      },
     },
   },
   {

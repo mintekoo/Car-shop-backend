@@ -59,8 +59,8 @@ function setupAssociations() {
   Blog.belongsTo(Category, { foreignKey: "categoryId" });
 
   // Product ↔ Gallery (One-to-Many)
-  Product.hasMany(Gallery, { foreignKey: "productId" });
-  Gallery.belongsTo(Product, { foreignKey: "productId" });
+  // Product.hasMany(Gallery, { foreignKey: "productId" });
+  // Gallery.belongsTo(Product, { foreignKey: "productId" });
 
   // User ↔ Testimonial (One-to-Many)
   User.hasMany(Testimonial, { foreignKey: "userId" });

@@ -9,7 +9,7 @@ const {
 // CREATE TESTIMONIAL
 exports.createTestimonial = async (req, res) => {
   try {
-    const { clientName, content, rating, userId, isActive } = req.body;
+    const { clientName, content, rating, userId, company, position } = req.body;
 
     if (!clientName || !content) {
       return res
@@ -35,7 +35,8 @@ exports.createTestimonial = async (req, res) => {
       content,
       rating,
       userId,
-      isActive: isActive !== undefined ? isActive : true,
+      company: company ?? null,
+      position: position ?? null,
       image,
     });
 
@@ -105,20 +106,12 @@ exports.getTestimonialById = async (req, res) => {
 exports.updateTestimonial = async (req, res) => {
   try {
     const { id } = req.params;
-    const { clientName, content, rating, userId, isActive } = req.body;
+    const { clientName, content, rating, company, position } = req.body;
 
     // 1️⃣ Find existing testimonial
     const testimonial = await Testimonial.findByPk(id);
     if (!testimonial) {
       return res.status(404).json({ error: "Testimonial not found" });
-    }
-
-    // 2️⃣ Validate user if provided
-    if (userId) {
-      const user = await User.findByPk(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
     }
 
     // 3️⃣ Handle image upload (if a new one was provided)
@@ -142,8 +135,8 @@ exports.updateTestimonial = async (req, res) => {
       clientName: clientName ?? testimonial.clientName,
       content: content ?? testimonial.content,
       rating: rating ?? testimonial.rating,
-      userId: userId ?? testimonial.userId,
-      isActive: isActive !== undefined ? isActive : testimonial.isActive,
+      company: company ?? testimonial.company,
+      position: position ?? testimonial.position,
       image: imagePath,
     });
 

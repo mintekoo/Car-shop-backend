@@ -13,6 +13,14 @@ const Testimonial = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    company: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    position:    {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
     content: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -24,10 +32,6 @@ const Testimonial = sequelize.define(
     userId: {
       type: DataTypes.INTEGER,
       allowNull: true,
-    },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
     },
     image: {
       type: DataTypes.STRING,

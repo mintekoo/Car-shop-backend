@@ -1,157 +1,155 @@
-const { Gallery, Product } = require('../models/index');
+const { Gallery } = require("../models/index");
+const fs = require("fs");
+const path = require("path");
+const {
+  getPaginationParams,
+  getPaginationMeta,
+} = require("../utils/pagination");
 
-// CREATE GALLERY
+// CREATE gallery
 exports.createGallery = async (req, res) => {
   try {
-    const { title, images, productId, isActive } = req.body;
+    const { title } = req.body;
 
-    if (!images || !Array.isArray(images)) {
-      return res.status(400).json({ error: 'Images array is required' });
-    }
+    // Handle uploaded images
+    const images = req.files
+      ? req.files.map((f) => path.join("uploads", "gallery", f.filename))
+      : [];
 
-    // Check if product exists if provided
-    if (productId) {
-      const product = await Product.findByPk(productId);
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-    }
-
-    const gallery = await Gallery.create({
-      title,
-      images,
-      productId,
-      isActive: isActive !== undefined ? isActive : true
-    });
-
-    const galleryWithRelations = await Gallery.findByPk(gallery.id, {
-      include: [
-        {
-          model: Product,
-          attributes: ['id', 'title', 'pricePerDay']
-        }
-      ]
-    });
+    const gallery = await Gallery.create({ title, images });
 
     res.status(201).json({
-      message: 'Gallery created successfully',
-      gallery: galleryWithRelations
+      success: true,
+      data: gallery,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error creating gallery:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// GET ALL GALLERIES
+// GET all galleries with pagination
 exports.getAllGalleries = async (req, res) => {
   try {
-    const galleries = await Gallery.findAll({
-      include: [
-        {
-          model: Product,
-          attributes: ['id', 'title', 'pricePerDay']
-        }
-      ],
-      order: [['createdAt', 'DESC']]
+    const { page, limit, offset } = getPaginationParams(req);
+    const { count, rows } = await Gallery.findAndCountAll({
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]],
     });
 
-    res.status(200).json(galleries);
+    const meta = getPaginationMeta(page, limit, count);
+
+    res.json({
+      success: true,
+      data: rows,
+      meta,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching galleries:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// GET GALLERY BY ID
+// GET single gallery by ID
 exports.getGalleryById = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const gallery = await Gallery.findByPk(id, {
-      include: [
-        {
-          model: Product,
-          attributes: ['id', 'title', 'pricePerDay', 'description']
-        }
-      ]
-    });
+    const gallery = await Gallery.findByPk(id);
 
     if (!gallery) {
-      return res.status(404).json({ error: 'Gallery not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Gallery not found" });
     }
 
-    res.status(200).json(gallery);
+    res.json({ success: true, data: gallery });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching gallery:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// UPDATE GALLERY
+// UPDATE gallery
 exports.updateGallery = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, images, productId, isActive } = req.body;
+    const { title, removeImages } = req.body;
+    // removeImages should be an array of image paths/filenames to delete
 
-    // Find gallery by ID
     const gallery = await Gallery.findByPk(id);
     if (!gallery) {
-      return res.status(404).json({ message: 'Gallery not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Gallery not found" });
     }
 
-    // If productId is provided, check if product exists
-    if (productId) {
-      const product = await Product.findByPk(productId);
-      if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
-      }
+    // Handle uploaded files
+    const uploadedFiles = Array.isArray(req.files) ? req.files : [];
+    const newImages = uploadedFiles.map((f) =>
+      path.join("uploads", "gallery", f.filename)
+    );
+
+    // Initialize current images
+    let images = [...(gallery.images || [])];
+
+    // Remove selected images if provided
+    if (removeImages && Array.isArray(removeImages)) {
+      removeImages.forEach((img) => {
+        const index = images.indexOf(img);
+        if (index !== -1) {
+          images.splice(index, 1);
+
+          // Delete file from disk
+          const fullPath = path.join(__dirname, "..", img);
+          if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+        }
+      });
     }
 
-    // Update fields if provided
-    gallery.title = title ?? gallery.title;
-    gallery.images = Array.isArray(images) ? images : gallery.images;
-    gallery.productId = productId ?? gallery.productId;
-    gallery.isActive = typeof isActive !== 'undefined' ? isActive : gallery.isActive;
+    // Merge new images
+    images = [...images, ...newImages];
 
-    // Save updated record
-    await gallery.save();
+    if (!title && images.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Nothing to update" });
+    }
 
-    // Re-fetch with relations (optional)
-    const updatedGallery = await Gallery.findByPk(gallery.id, {
-      include: [
-        {
-          model: Product,
-          attributes: ['id', 'title', 'pricePerDay'],
-        },
-      ],
-    });
+    await gallery.update({ title: title || gallery.title, images });
 
-    res.status(200).json({
-      message: 'Gallery updated successfully',
-      gallery: updatedGallery,
-    });
+    res.json({ success: true, data: gallery });
   } catch (error) {
-    console.error('Error updating gallery:', error);
-    res.status(500).json({
-      message: 'An error occurred while updating the gallery',
-      error: error.message,
-    });
+    console.error("Error updating gallery:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// DELETE GALLERY
+// DELETE gallery
 exports.deleteGallery = async (req, res) => {
   try {
     const { id } = req.params;
-
     const gallery = await Gallery.findByPk(id);
+
     if (!gallery) {
-      return res.status(404).json({ error: 'Gallery not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Gallery not found" });
     }
 
-    await gallery.destroy();
-    res.status(200).json({
-      message: 'Gallery deleted successfully'
+    // Delete associated images from filesystem
+    gallery.images.forEach((imgPath) => {
+      const fullPath = path.join(__dirname, "..", imgPath);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
     });
+
+    await gallery.destroy();
+
+    res.json({ success: true, message: "Gallery deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error deleting gallery:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
