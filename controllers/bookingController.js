@@ -14,16 +14,15 @@ exports.createBooking = async (req, res) => {
       Phone,
       startDate,
       endDate,
-      totalPrice,
       driver,
       paymentStatus,
     } = req.body;
 
     // Validation
-    if (!productId || !fullName || !Phone || !startDate || !endDate || !totalPrice) {
+    if (!productId || !fullName || !Phone || !startDate || !endDate) {
       return res.status(400).json({
         error:
-          "productId, fullName, Phone, startDate, endDate, and totalPrice are required",
+          "productId, fullName, Phone, startDate, and endDate are required",
       });
     }
 
@@ -46,7 +45,6 @@ exports.createBooking = async (req, res) => {
       Phone: normalizedPhone,
       startDate,
       endDate,
-      totalPrice,
       driver,
       paymentStatus: paymentStatus || "Pending",
     });
@@ -104,7 +102,7 @@ exports.getBookingById = async (req, res) => {
 exports.updateBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, Phone, startDate, endDate, totalPrice, driver, paymentStatus } = req.body;
+    const { fullName, Phone, startDate, endDate, driver, paymentStatus } = req.body;
 
     const booking = await Booking.findByPk(id);
     if (!booking) {
@@ -125,12 +123,6 @@ exports.updateBooking = async (req, res) => {
 
     if (startDate !== undefined) updateData.startDate = startDate;
     if (endDate !== undefined) updateData.endDate = endDate;
-    if (totalPrice !== undefined) {
-      if (isNaN(totalPrice) || totalPrice < 0) {
-        return res.status(400).json({ error: "Total price must be a positive number" });
-      }
-      updateData.totalPrice = totalPrice;
-    }
     if (driver !== undefined){
       const validStatuses = ["yes", "no"];
       if (!validStatuses.includes(driver)){

@@ -29,10 +29,6 @@ const Booking = sequelize.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
-    totalPrice: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-    },
     driver:{
       type: DataTypes.ENUM("yes", "no"),
       defaultValue: "no"
