@@ -24,6 +24,7 @@ const termAndConditionRoutes = require('./termAndConditionRoute');
 const testimonialRoutes = require('./testimonialRoute');
 const translationRoutes = require('./translationRoute');
 const dashboardRoutes = require('./dashboardRoute');
+const rentalRoutes = require("./rentalRoutes")
 
 // Use routes
 router.use('/users', userRoutes);
@@ -47,6 +48,7 @@ router.use('/terms-and-conditions', termAndConditionRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/translations', translationRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use('/rentals', rentalRoutes);
 
 
 

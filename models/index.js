@@ -24,6 +24,7 @@ const TermAndCondition = require("./termAndCondition");
 const Testimonial = require("./testimonial");
 const Translation = require("./translation");
 const User = require("./user");
+const Rental = require("./rental");
 
 // -------------------- RELATIONS -------------------- //
 
@@ -143,6 +144,9 @@ const syncDB = async (options = { alter: false }) => {
     await Translation.sync(options);
     console.log("✅ Translation table synced.");
 
+    await Rental.sync(options);
+    console.log("✅ Rental table synced.");
+
     console.log("✅ All tables synced successfully.");
   } catch (err) {
     console.error("❌ Error syncing DB:", err);
@@ -174,5 +178,6 @@ module.exports = {
   Testimonial,
   Translation,
   User,
+  Rental,
   syncDB,
 };
