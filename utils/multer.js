@@ -25,9 +25,10 @@ const createMulter = (folderName = "") => {
     filename: (req, file, cb) => {
       const timestamp = Date.now();
       const ext = path.extname(file.originalname);
-      const baseName = path
+      let baseName = path
         .basename(file.originalname, ext)
-        .replace(/\s+/g, "_");
+        .replace(/[^a-zA-Z0-9-_]/g, "_")
+        .slice(0, 50);
       cb(null, `${baseName}-${timestamp}${ext}`);
     },
   });
